@@ -2,7 +2,7 @@
   "version": 2,
   "installCommand": "cd DuramatFront && npm ci",
   "buildCommand": "cd DuramatFront && npm run build",
-  "outputDirectory": "DuramatFront/dist/DuramatFront",
+  "outputDirectory": "DuramatFront/dist/DuramatFront/browser",
   "rewrites": [
     {
       "source": "/ping",
