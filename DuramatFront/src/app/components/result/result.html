@@ -1,0 +1,46 @@
+<section class="result-page">
+	<header class="result-hero">
+		<div>
+			<span class="eyebrow">Resultados de lectura</span>
+			<h1>Materiales y criterios extraídos del Excel</h1>
+			<p>
+				Archivo cargado:
+				<strong>{{ fileName() || 'Sin archivo cargado' }}</strong>
+			</p>
+		</div>
+
+		<a class="back-link" routerLink="/">Volver a cargar archivo</a>
+	</header>
+
+	<div class="result-grid" *ngIf="hasData(); else emptyState">
+		<article class="result-card">
+			<div class="card-head">
+				<h2>Hoja 1 · Materiales</h2>
+				<span>{{ materials()?.items?.length || 0 }} nombres</span>
+			</div>
+
+			<div class="chip-list" *ngIf="materials() as materialsList">
+				<span class="chip" *ngFor="let item of materialsList.items">{{ item }}</span>
+			</div>
+		</article>
+
+		<article class="result-card result-card--accent">
+			<div class="card-head">
+				<h2>Hoja 7 · Criterios</h2>
+				<span>{{ criteria()?.items?.length || 0 }} nombres</span>
+			</div>
+
+			<div class="chip-list chip-list--criteria" *ngIf="criteria() as criteriaList">
+				<span class="chip chip--criteria" *ngFor="let item of criteriaList.items">{{ item }}</span>
+			</div>
+		</article>
+	</div>
+
+	<ng-template #emptyState>
+		<section class="empty-state">
+			<h2>No hay datos cargados todavía</h2>
+			<p>Selecciona el archivo Excel desde la pantalla principal para leer las hojas 1 y 7.</p>
+			<a class="back-link" routerLink="/">Ir al inicio</a>
+		</section>
+	</ng-template>
+</section>

@@ -1,0 +1,205 @@
+<div class="duramat-page">
+<div class="app-container">
+
+    <!-- ========================================= -->
+    <!-- HEADER / NAVBAR                           -->
+    <!-- ========================================= -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="brand">
+                <div class="brand-text">
+                    <span class="brand-name">DURAMAT</span>
+                    <span class="brand-tagline">Modelo de Durabilidad y Sostenibilidad para Materiales de Construcción</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================= -->
+    <!-- HERO / DESCRIPCIÓN DEL MODELO             -->
+    <!-- ========================================= -->
+    <section class="hero-section">
+        <div class="hero-copy">
+            <span class="eyebrow">Selección de materiales sostenibles</span>
+            <h1>El material que dura,<br>es el material sostenible.</h1>
+            <p>
+                DURAMAT integra el <strong>Análisis de Ciclo de Vida (LCA)</strong> con la
+                <strong>Decisión Multicriterio (MCDM)</strong>, siguiendo el avance del
+                frente de carbonatación en el tiempo para estimar la vida útil real
+                de cada material y su impacto ambiental anualizado en el contexto colombiano.
+            </p>
+
+            <dl class="hero-metrics">
+                <div class="hero-metric">
+                    <dt>Materiales evaluados</dt>
+                    <dd>08</dd>
+                </div>
+                <div class="hero-metric">
+                    <dt>Criterios de decisión</dt>
+                    <dd>07</dd>
+                </div>
+                <div class="hero-metric">
+                    <dt>Horizonte del modelo</dt>
+                    <dd>t<sub>L</sub> proyectado</dd>
+                </div>
+            </dl>
+
+            <div class="hero-highlights" aria-label="Beneficios principales del modelo">
+                <span class="hero-highlight">Vida útil comparada</span>
+                <span class="hero-highlight hero-highlight--patina">Impacto anualizado</span>
+                <span class="hero-highlight hero-highlight--oxide">Ranking multicriterio</span>
+            </div>
+        </div>
+
+        <!-- Pieza de firma: testigo de núcleo con frente de carbonatación -->
+        <figure class="core-sample" role="img" aria-label="Testigo de núcleo mostrando el avance del frente de carbonatación a través de las capas de material">
+            <svg viewBox="0 0 240 340" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <clipPath id="coreClip">
+                        <rect x="70" y="10" width="100" height="320" rx="14" />
+                    </clipPath>
+                </defs>
+
+                <g clip-path="url(#coreClip)">
+                    <rect x="70" y="10" width="100" height="320" fill="#DCD5C4" />
+                    <rect x="70" y="10"  width="100" height="58" fill="#C9BFA6" />
+                    <rect x="70" y="68"  width="100" height="52" fill="#B9AF95" />
+                    <rect x="70" y="120" width="100" height="60" fill="#A79C82" />
+                    <rect x="70" y="180" width="100" height="70" fill="#8F8570" />
+                    <rect x="70" y="250" width="100" height="80" fill="#726A57" />
+
+                    <!-- frente de carbonatación -->
+                    <path d="M70 132 C 95 128, 105 145, 120 138 C 138 130, 150 150, 170 140 L170 132 Z"
+                          fill="#B24B2C" opacity="0.85" />
+                    <path d="M70 132 C 95 128, 105 145, 120 138 C 138 130, 150 150, 170 140"
+                          fill="none" stroke="#7A2E17" stroke-width="2" stroke-dasharray="3 3" />
+                </g>
+
+                <rect x="70" y="10" width="100" height="320" rx="14" fill="none" stroke="#3A342A" stroke-width="1.5" />
+
+                <!-- cotas -->
+                <line x1="182" y1="10" x2="182" y2="135" stroke="#35664A" stroke-width="1.5" />
+                <line x1="176" y1="10" x2="188" y2="10" stroke="#35664A" stroke-width="1.5" />
+                <line x1="176" y1="135" x2="188" y2="135" stroke="#35664A" stroke-width="1.5" />
+                <text x="196" y="76" class="core-label" transform="rotate(90 196 76)">t₀ → t_L</text>
+
+                <text x="120" y="115" class="core-label core-label--oxide" text-anchor="middle">frente</text>
+            </svg>
+            <figcaption>Avance del frente de carbonatación sobre el recubrimiento del material</figcaption>
+        </figure>
+    </section>
+
+    <div class="section-divider" aria-hidden="true"></div>
+
+    <!-- ========================================= -->
+    <!-- CARGA DE EXCEL                            -->
+    <!-- ========================================= -->
+    <section class="upload-section">
+        <div class="upload-card">
+            <div class="upload-card-head">
+                <h2>Cargar matriz de materiales</h2>
+                <p>Sube el archivo Excel con la matriz de criterios y pesos para iniciar la evaluación.</p>
+            </div>
+
+            <label for="fileInput" class="btn btn-primary btn-large">
+                <i class="fas fa-file-arrow-up"></i>
+                {{ loadingFile ? 'Leyendo archivo...' : 'Seleccionar archivo Excel' }}
+            </label>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" (change)="onFileSelected($event)" />
+            @if (!loadingFile) {
+                <span class="file-name">Ningun archivo seleccionado</span>
+            }
+            @if (errorMessage) {
+                <span class="file-name file-name--error">{{ errorMessage }}</span>
+            }
+        </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- PARÁMETROS CLIMÁTICOS                     -->
+    <!-- ========================================= -->
+    <section class="climate-section">
+        <div class="section-header">
+            <h2><i class="fas fa-cloud-sun"></i> Condiciones climáticas del sitio</h2>
+            <span class="badge">Configuración</span>
+        </div>
+        <div class="climate-grid">
+            <div class="climate-item">
+                <span class="climate-label"><i class="fas fa-temperature-half"></i> Temperatura</span>
+                <div class="climate-input">
+                    <input type="number" [(ngModel)]="temp" step="0.5" />
+                    <span class="unit">°C</span>
+                </div>
+            </div>
+            <div class="climate-item">
+                <span class="climate-label"><i class="fas fa-droplet"></i> Humedad relativa</span>
+                <div class="climate-input">
+                    <input type="number" [(ngModel)]="humidity" step="1" />
+                    <span class="unit">%</span>
+                </div>
+            </div>
+            <div class="climate-item">
+                <span class="climate-label"><i class="fas fa-wind"></i> CO₂ ambiente</span>
+                <div class="climate-input">
+                    <input type="number" [(ngModel)]="co2" step="10" />
+                    <span class="unit">ppm</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- FLUJO DEL MODELO (ÁRBOL DE 4 NIVELES)     -->
+    <!-- ========================================= -->
+    <section class="flow-section">
+        <div class="section-header">
+            <h2><i class="fas fa-diagram-project"></i> Flujo del modelo</h2>
+            <span class="badge">Secuencia de cálculo</span>
+        </div>
+
+        <div class="flow-rail">
+            <div class="flow-step">
+                <div class="step-node"><span class="step-number">01</span></div>
+                <div class="step-content">
+                    <i class="fas fa-check-double step-icon"></i>
+                    <h4>Validación &amp; preparación</h4>
+                    <p>Normalización min-max y verificación de rangos</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-node"><span class="step-number">02</span></div>
+                <div class="step-content">
+                    <i class="fas fa-clock step-icon"></i>
+                    <h4>Cálculo de durabilidad</h4>
+                    <p>Modelo de carbonatación y vida útil (t<sub>L</sub>)</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-node"><span class="step-number">03</span></div>
+                <div class="step-content">
+                    <i class="fas fa-recycle step-icon"></i>
+                    <h4>Integración LCA-MCDM</h4>
+                    <p>Impacto anualizado y actualización de pesos</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="step-node"><span class="step-number">04</span></div>
+                <div class="step-content">
+                    <i class="fas fa-trophy step-icon"></i>
+                    <h4>Ranking &amp; agregación</h4>
+                    <p>Puntuación S<sub>i</sub> y priorización final</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================= -->
+    <!-- FOOTER                                     -->
+    <!-- ========================================= -->
+    <footer class="main-footer">
+        <p>DURAMAT · Modelo de Decisión Integrado MCDM-LCA · Maestría en Sistemas</p>
+        <p class="footer-sub">Selección de materiales sostenibles con enfoque en durabilidad y ciclo de vida</p>
+    </footer>
+
+</div>
+</div>
