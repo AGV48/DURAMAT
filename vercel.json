@@ -1,4 +1,9 @@
 {
+  "installCommand": "npm ci --include-workspace-root",
+  "buildCommand": "npm run build --workspace=DuramatFront",
+  "outputDirectory": "DuramatFront/dist/DuramatFront/browser"
+}
+{
   "version": 2,
   "installCommand": "cd DuramatFront && npm ci",
   "buildCommand": "cd DuramatFront && npm run build",
