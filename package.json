@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "npm ci --include-workspace-root && npm --workspace=DuramatFront run build"
+  },
   "dependencies": {
     "xlsx": "^0.18.5"
   }

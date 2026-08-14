@@ -1,7 +1,14 @@
 {
-  "installCommand": "npm ci --include-workspace-root",
-  "buildCommand": "npm run build --workspace=DuramatFront",
-  "outputDirectory": "DuramatFront/dist/DuramatFront/browser"
+  "version": 2,
+  "builds": [
+    {
+      "src": "DuramatFront/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/DuramatFront/browser"
+      }
+    }
+  ]
 }
 {
   "version": 2,
