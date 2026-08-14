@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "cd DuramatFront && npm ci",
+  "installCommand": "cd DuramatFront && npm install --legacy-peer-deps",
   "buildCommand": "cd DuramatFront && npm run build",
   "outputDirectory": "DuramatFront/dist/DuramatFront/browser",
   "rewrites": [
