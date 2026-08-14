@@ -46,7 +46,11 @@ export class EvaluationService {
     formData.append('relative_humidity', String(climate.relative_humidity));
     formData.append('co2_ppm', String(climate.co2_ppm));
 
-    return this.http.post<EvaluationResponse>('http://localhost:8000/api/evaluate', formData, {
+    // Allow runtime configuration of API base URL via global `API_BASE_URL`.
+    // If unset, use relative path so the app can be proxied or served from the same origin.
+    const apiBase = (window as any).API_BASE_URL || '';
+    const url = apiBase ? `${apiBase.replace(/\/+$/, '')}/api/evaluate` : '/api/evaluate';
+    return this.http.post<EvaluationResponse>(url, formData, {
       headers: new HttpHeaders({ Accept: 'application/json' }),
     });
   }

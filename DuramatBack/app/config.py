@@ -18,6 +18,7 @@ class AppSettings:
                     "http://127.0.0.1:8080",
                     "http://localhost",
                     "http://127.0.0.1",
+                        "https://duramat.vercel.app",
                 ],
             )
 
