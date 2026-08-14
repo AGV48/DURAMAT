@@ -5,24 +5,12 @@
       "src": "DuramatFront/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist/DuramatFront/browser"
+        "distDir": "dist/DuramatFront"
       }
     }
-  ]
-}
-{
-  "version": 2,
-  "installCommand": "cd DuramatFront && npm ci",
-  "buildCommand": "cd DuramatFront && npm run build",
-  "outputDirectory": "DuramatFront/dist/DuramatFront/browser",
+  ],
   "rewrites": [
-    {
-      "source": "/ping",
-      "destination": "/ping.html"
-    },
-    {
-      "source": "/((?!ping|api|.*\\..*).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/ping", "destination": "/ping.html" },
+    { "source": "/((?!ping|api|.*\\..*).*)", "destination": "/index.html" }
   ]
 }
