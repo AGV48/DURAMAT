@@ -92,6 +92,112 @@
   margin-top: 12px;
 }
 
+.decision-charts {
+  margin: 28px 0;
+  padding-top: 24px;
+  border-top: 1px solid rgba(53, 102, 74, 0.14);
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.section-heading h3 {
+  margin: 0;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-size: 1.45rem;
+}
+
+.section-heading .eyebrow {
+  margin-bottom: 8px;
+}
+
+.section-heading p {
+  max-width: 360px;
+  margin: 0;
+  color: #5d5a50;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.node-chart {
+  padding: 18px;
+  border: 1px solid rgba(45, 111, 87, 0.14);
+  border-radius: 16px;
+  background: rgba(248, 246, 238, 0.78);
+}
+
+.node-chart__head {
+  min-height: 76px;
+  margin-bottom: 16px;
+}
+
+.node-chart__head h4 {
+  margin: 0 0 7px;
+  color: #18392d;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-size: 1rem;
+}
+
+.node-chart__head p {
+  margin: 0;
+  color: #706b5f;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.bar-row + .bar-row {
+  margin-top: 13px;
+}
+
+.bar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: #37372f;
+  font-size: 0.84rem;
+}
+
+.bar-label span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-label strong {
+  color: #842f19;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(45, 111, 87, 0.12);
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2d6f57, #d05c34);
+  transition: width 500ms ease;
+}
+
 .result-card--accent {
   background: rgba(247, 242, 230, 0.92);
 }
@@ -224,6 +330,21 @@ th {
   .result-hero {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .section-heading p {
+    max-width: none;
+    text-align: left;
   }
 }
 

@@ -46,13 +46,31 @@ export class Home {
         }),
       );
 
+      if (response.decision_tree_text) {
+        console.log('Arbol de decision (API):\n' + response.decision_tree_text);
+      }
+
       this.evaluationService.setResult(response);
       await this.router.navigate(['/result']);
     } catch (error: any) {
-      console.error('Evaluation request failed', error);
-      // Prefer server-provided detail when present (FastAPI ValueError handler returns { detail })
-      const serverDetail = error && error.error && (error.error.detail || error.error.message);
-      this.errorMessage = typeof serverDetail === 'string' && serverDetail ? serverDetail : (error instanceof Error ? error.message : 'No se pudo leer el archivo Excel.');
+      const responseBody = error?.error;
+      const validationDetails = Array.isArray(responseBody?.errors)
+        ? responseBody.errors
+            .map((item: any) => `${item.loc?.join('.') ?? 'request'}: ${item.msg ?? 'invalid value'}`)
+            .join(' | ')
+        : '';
+      const serverDetail = responseBody?.detail || responseBody?.message || validationDetails;
+      console.error('Evaluation request failed', {
+        status: error?.status,
+        url: error?.url,
+        response: responseBody,
+      });
+      this.errorMessage =
+        typeof serverDetail === 'string' && serverDetail
+          ? serverDetail
+          : error instanceof Error
+            ? error.message
+            : 'No se pudo leer el archivo Excel.';
       this.excelDataService.clear();
       this.evaluationService.clear();
     } finally {

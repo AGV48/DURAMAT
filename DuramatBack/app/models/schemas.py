@@ -38,6 +38,12 @@ class MaterialEvaluation(BaseModel):
     contribution: dict[str, float] = Field(default_factory=dict)
 
 
+class DecisionNodeEvaluation(BaseModel):
+    name: str
+    description: str = ""
+    scores: dict[str, float] = Field(default_factory=dict)
+
+
 class EvaluationResponse(BaseModel):
     status: str = "success"
     message: str = "Evaluación completada exitosamente."
@@ -45,3 +51,5 @@ class EvaluationResponse(BaseModel):
     ranking: list[MaterialEvaluation]
     top_material: str | None = None
     score_gap_percent: float | None = None
+    decision_tree_text: str | None = None
+    decision_nodes: list[DecisionNodeEvaluation] = Field(default_factory=list)

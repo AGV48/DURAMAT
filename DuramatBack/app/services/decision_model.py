@@ -75,6 +75,29 @@ class DecisionModelEngine:
             annualized[f"annualized_{criterion}"] = result.tolist()
         return annualized
 
+    def prepare_scoring_data(
+        self,
+        matrix: dict[str, list[float]],
+        material_count: int,
+        climate: dict[str, float],
+    ) -> tuple[dict[str, list[float]], list[float], dict[str, list[float]]]:
+        technical = self.normalize_min_max(matrix).get("technical_performance", [1.0] * material_count)
+        life_years = self.calculate_life_cycle(technical, climate)
+        annualized = self.annualize_lca(matrix, life_years)
+
+        scoring_matrix = {criterion: values for criterion, values in matrix.items()}
+        for criterion in ["co2", "energy"]:
+            annualized_key = f"annualized_{criterion}"
+            if annualized_key in annualized:
+                scoring_matrix[criterion] = annualized[annualized_key]
+
+        normalized = self.normalize_min_max(scoring_matrix)
+        for criterion in ["co2", "energy", "lcc_cost", "health_ecosystems"]:
+            if criterion in normalized:
+                normalized[criterion] = [1.0 - value for value in normalized[criterion]]
+
+        return normalized, life_years, annualized
+
     def build_decision_tree(
         self,
         material_names: list[str],
@@ -84,20 +107,15 @@ class DecisionModelEngine:
     ) -> DecisionNode:
         if weights is None:
             weights = {
-                "co2": 0.22,
-                "energy": 0.18,
-                "technical_performance": 0.22,
-                "lcc_cost": 0.18,
-                "health_ecosystems": 0.20,
+                "co2": 0.2447,
+                "energy": 0.2188,
+                "technical_performance": 0.2096,
+                "lcc_cost": 0.1917,
+                "health_ecosystems": 0.1352,
             }
 
         self.validate_inputs(matrix, material_names)
-        normalized = self.normalize_min_max(matrix)
-        technical = normalized.get("technical_performance", [1.0] * len(material_names))
-        life_years = self.calculate_life_cycle(technical, climate)
-        annualized = self.annualize_lca(matrix, life_years)
-        for criterion, values in annualized.items():
-            normalized[criterion] = self.normalize_min_max({criterion: values})[criterion]
+        normalized, life_years, annualized = self.prepare_scoring_data(matrix, len(material_names), climate)
 
         score_rows = []
         for idx, material in enumerate(material_names):
@@ -118,8 +136,8 @@ class DecisionModelEngine:
                     "material": material,
                     "score": float(total),
                     "life_years": float(life_years[idx]),
-                    "annualized_co2": float(annualized.get("annualized_co2", [0.0])[idx]),
-                    "annualized_energy": float(annualized.get("annualized_energy", [0.0])[idx]),
+                    "annualized_co2": float(annualized.get("annualized_co2", [0.0] * len(material_names))[idx]),
+                    "annualized_energy": float(annualized.get("annualized_energy", [0.0] * len(material_names))[idx]),
                     "technical_performance": float(matrix.get("technical_performance", [0.0])[idx]),
                     "co2": float(matrix.get("co2", [0.0])[idx]),
                     "energy": float(matrix.get("energy", [0.0])[idx]),
@@ -142,6 +160,10 @@ class DecisionModelEngine:
             name="Nivel 1: Validación y preparación de datos",
             description="Verificación de rangos, integridad y normalización min-max.",
             criteria={criterion: float(np.mean(values)) for criterion, values in normalized.items()},
+            score_by_material={
+                material: float(np.mean([values[index] for values in normalized.values() if index < len(values)]))
+                for index, material in enumerate(material_names)
+            },
         )
         level_2 = DecisionNode(
             name="Nivel 2: Cálculo de durabilidad y vida útil",
@@ -195,6 +217,68 @@ class DecisionModelEngine:
         for child in node.children:
             self.print_decision_tree(child, depth + 1)
 
+    def render_decision_tree_text(self, node: DecisionNode, include_details: bool = True) -> str:
+        lines: list[str] = []
+
+        def visit(current: DecisionNode, prefix: str, is_last: bool, is_root: bool = False) -> None:
+            connector = "" if is_root else ("└── " if is_last else "├── ")
+            lines.append(f"{prefix}{connector}{current.name}")
+
+            child_prefix = prefix if is_root else f"{prefix}{'    ' if is_last else '│   '}"
+
+            if include_details and current.description:
+                lines.append(f"{child_prefix}desc: {current.description}")
+
+            if include_details and current.criteria:
+                lines.append(f"{child_prefix}criterios:")
+                for key, value in current.criteria.items():
+                    if isinstance(value, float):
+                        lines.append(f"{child_prefix}  - {key}: {value:.6g}")
+                    else:
+                        lines.append(f"{child_prefix}  - {key}: {value}")
+
+            if include_details and current.score_by_material:
+                lines.append(f"{child_prefix}puntajes:")
+                for material, score in current.score_by_material.items():
+                    lines.append(f"{child_prefix}  - {material}: {score:.6g}")
+
+            for index, child in enumerate(current.children):
+                visit(child, child_prefix, is_last=(index == len(current.children) - 1))
+
+        visit(node, prefix="", is_last=True, is_root=True)
+        return "\n".join(lines)
+
+    def _build_rich_tree(self, node: DecisionNode, include_details: bool = True) -> Any:
+        from rich.tree import Tree  # type: ignore[reportMissingImports]
+
+        label = f"[bold cyan]{node.name}[/bold cyan]"
+        branch = Tree(label)
+
+        if include_details and node.description:
+            branch.add(f"[dim]{node.description}[/dim]")
+
+        if include_details and node.criteria:
+            criteria_branch = branch.add("[yellow]Criterios[/yellow]")
+            for key, value in node.criteria.items():
+                criteria_branch.add(f"{key}: {value:.6g}" if isinstance(value, float) else f"{key}: {value}")
+
+        if include_details and node.score_by_material:
+            scores_branch = branch.add("[green]Puntajes por material[/green]")
+            for material, score in node.score_by_material.items():
+                scores_branch.add(f"{material}: {score:.6g}")
+
+        for child in node.children:
+            branch.add(self._build_rich_tree(child, include_details=include_details))
+
+        return branch
+
+    def print_decision_tree_rich(self, node: DecisionNode, include_details: bool = True) -> None:
+        from rich.console import Console  # type: ignore[reportMissingImports]
+
+        console = Console(force_terminal=True, soft_wrap=True)
+        rich_tree = self._build_rich_tree(node, include_details=include_details)
+        console.print(rich_tree)
+
     def calculate_scores(
         self,
         material_names: list[str],
@@ -204,23 +288,17 @@ class DecisionModelEngine:
     ) -> tuple[list[dict[str, Any]], DecisionNode]:
         if weights is None:
             weights = {
-                "co2": 0.22,
-                "energy": 0.18,
-                "technical_performance": 0.22,
-                "lcc_cost": 0.18,
-                "health_ecosystems": 0.20,
+                "co2": 0.2447,
+                "energy": 0.2188,
+                "technical_performance": 0.2096,
+                "lcc_cost": 0.1917,
+                "health_ecosystems": 0.1352,
             }
 
         if not np.isclose(sum(weights.values()), 1.0):
             raise ValueError("La suma de los pesos debe ser igual a 1.0")
 
-        normalized = self.normalize_min_max(matrix)
-        technical = normalized.get("technical_performance", [1.0] * len(material_names))
-        life_years = self.calculate_life_cycle(technical, climate)
-
-        annualized = self.annualize_lca(matrix, life_years)
-        for criterion, values in annualized.items():
-            normalized[criterion] = self.normalize_min_max({criterion: values})[criterion]
+        normalized, life_years, annualized = self.prepare_scoring_data(matrix, len(material_names), climate)
 
         score_rows: list[dict[str, Any]] = []
         for idx, material in enumerate(material_names):
@@ -242,8 +320,8 @@ class DecisionModelEngine:
                     "material": material,
                     "score": float(total),
                     "life_years": float(life_years[idx]),
-                    "annualized_co2": float(annualized.get("annualized_co2", [0.0])[idx]),
-                    "annualized_energy": float(annualized.get("annualized_energy", [0.0])[idx]),
+                    "annualized_co2": float(annualized.get("annualized_co2", [0.0] * len(material_names))[idx]),
+                    "annualized_energy": float(annualized.get("annualized_energy", [0.0] * len(material_names))[idx]),
                     "technical_performance": float(matrix.get("technical_performance", [0.0])[idx]),
                     "co2": float(matrix.get("co2", [0.0])[idx]),
                     "energy": float(matrix.get("energy", [0.0])[idx]),

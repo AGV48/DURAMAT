@@ -23,6 +23,12 @@ export interface MaterialEvaluationItem {
   contribution: Record<string, number>;
 }
 
+export interface DecisionNodeEvaluation {
+  name: string;
+  description: string;
+  scores: Record<string, number>;
+}
+
 export interface EvaluationResponse {
   status: string;
   message: string;
@@ -30,6 +36,8 @@ export interface EvaluationResponse {
   ranking: MaterialEvaluationItem[];
   top_material: string | null;
   score_gap_percent: number | null;
+  decision_tree_text: string | null;
+  decision_nodes: DecisionNodeEvaluation[];
 }
 
 @Injectable({ providedIn: 'root' })

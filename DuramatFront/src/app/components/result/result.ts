@@ -23,4 +23,19 @@ export class Result {
   readonly topMaterial = computed(() => this.evaluationResult()?.top_material ?? 'Sin resultado');
   readonly climate = computed(() => this.evaluationResult()?.climate ?? null);
   readonly scoreGap = computed(() => this.evaluationResult()?.score_gap_percent ?? 0);
+  readonly decisionCharts = computed(() =>
+    (this.evaluationResult()?.decision_nodes ?? []).map((node) => {
+      const entries = Object.entries(node.scores);
+      const maximum = Math.max(...entries.map(([, value]) => Math.abs(value)), 1);
+
+      return {
+        ...node,
+        items: entries.map(([material, value]) => ({
+          material,
+          value,
+          width: (Math.abs(value) / maximum) * 100,
+        })),
+      };
+    }),
+  );
 }

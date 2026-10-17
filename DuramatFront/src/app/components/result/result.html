@@ -49,6 +49,37 @@
       </div>
     </div>
 
+    <section class="decision-charts" *ngIf="decisionCharts().length">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow eyebrow--soft">Trazabilidad del flujo</span>
+          <h3>Desempeño por punto de evaluación</h3>
+        </div>
+        <p>Las barras muestran el valor relativo de cada material dentro de cada nodo.</p>
+      </div>
+
+      <div class="chart-grid">
+        <article class="node-chart" *ngFor="let chart of decisionCharts()">
+          <div class="node-chart__head">
+            <h4>{{ chart.name }}</h4>
+            <p>{{ chart.description }}</p>
+          </div>
+
+          <div class="bar-list">
+            <div class="bar-row" *ngFor="let item of chart.items">
+              <div class="bar-label">
+                <span>{{ item.material }}</span>
+                <strong>{{ item.value | number: '1.2-4' }}</strong>
+              </div>
+              <div class="bar-track" aria-hidden="true">
+                <span class="bar-fill" [style.width.%]="item.width"></span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <div class="table-wrap">
       <table>
         <thead>

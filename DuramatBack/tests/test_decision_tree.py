@@ -20,3 +20,22 @@ def test_tree_is_built_with_criteria_and_scores():
     assert tree.score_by_material
     assert tree.score_by_material["M1"] >= 0
     assert tree.score_by_material["M2"] >= 0
+
+
+def test_lower_environmental_impacts_improve_score():
+    engine = DecisionModelEngine()
+    matrix = {
+        "co2": [10.0, 20.0],
+        "energy": [10.0, 20.0],
+        "technical_performance": [5.0, 5.0],
+        "lcc_cost": [10.0, 20.0],
+        "health_ecosystems": [0.1, 0.2],
+    }
+
+    ranking, _ = engine.calculate_scores(
+        ["M1", "M2"],
+        matrix,
+        {"temperature_c": 24.0, "relative_humidity": 75.0, "co2_ppm": 420.0},
+    )
+
+    assert ranking[0]["material"] == "M1"

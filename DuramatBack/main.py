@@ -7,11 +7,12 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi import Request
 import logging
+import unicodedata
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.models.schemas import ClimateInput, EvaluationResponse, MaterialEvaluation
+from app.models.schemas import ClimateInput, DecisionNodeEvaluation, EvaluationResponse, MaterialEvaluation
 from app.services.decision_model import DecisionModelEngine
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.debug)
@@ -27,13 +28,24 @@ app.add_middleware(
 
 @app.exception_handler(ValueError)
 async def value_error_handler(_, exc: ValueError):
+    logging.getLogger("uvicorn.error").error("Evaluation rejected: %s", exc)
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logging.getLogger("uvicorn.error").error("Request validation failed for %s: %s", request.url.path, exc)
-    return JSONResponse(status_code=400, content={"detail": "Request validation error", "errors": exc.errors()})
+    errors = exc.errors()
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": "Request validation error",
+            "errors": [
+                {"loc": [str(part) for part in error.get("loc", [])], "msg": error.get("msg", "invalid value")}
+                for error in errors
+            ],
+        },
+    )
 
 
 @app.get("/health")
@@ -286,7 +298,9 @@ async def evaluate_excel(
 
     # Map descriptive column headers to internal criterion keys expected by DecisionModelEngine
     def map_criterion_name(name: str) -> str | None:
-        s = name.strip().lower()
+        s = unicodedata.normalize("NFKD", name.strip().lower())
+        s = "".join(character for character in s if not unicodedata.combining(character))
+        s = s.replace("₂", "2")
         if any(k in s for k in ("co2", "gwp", "emisiones")):
             return "co2"
         if any(k in s for k in ("energ", "energia")):
@@ -329,7 +343,21 @@ async def evaluate_excel(
         print("Failed to log debug parsing info:\n", traceback.format_exc())
     engine.validate_inputs(mapped_matrix, material_names)
     raw_ranking, tree = engine.calculate_scores(material_names, mapped_matrix, climate.model_dump())
-    engine.print_decision_tree(tree)
+    decision_tree_text = engine.render_decision_tree_text(tree, include_details=True)
+    decision_nodes = [
+        DecisionNodeEvaluation(
+            name=node.name,
+            description=node.description,
+            scores={material: float(score) for material, score in node.score_by_material.items()},
+        )
+        for node in [*tree.children, tree]
+        if node.score_by_material
+    ]
+    try:
+        engine.print_decision_tree_rich(tree, include_details=True)
+    except Exception:
+        # Fallback seguro para no romper la API si Rich no estuviera disponible.
+        engine.print_decision_tree(tree)
 
     ranking = [
         MaterialEvaluation(
@@ -361,6 +389,8 @@ async def evaluate_excel(
         ranking=ranking,
         top_material=top_material,
         score_gap_percent=score_gap,
+        decision_tree_text=decision_tree_text,
+        decision_nodes=decision_nodes,
     )
 
 
