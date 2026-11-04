@@ -27,6 +27,8 @@ class MaterialEvaluation(BaseModel):
     rank: int
     material: str
     score: float
+    topsis_ci: float
+    wlc_score: float
     life_years: float
     annualized_co2: float
     annualized_energy: float
@@ -53,3 +55,5 @@ class EvaluationResponse(BaseModel):
     score_gap_percent: float | None = None
     decision_tree_text: str | None = None
     decision_nodes: list[DecisionNodeEvaluation] = Field(default_factory=list)
+    aggregation: str
+    weights: dict[str, float]

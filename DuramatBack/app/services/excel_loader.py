@@ -1,68 +1,135 @@
 from __future__ import annotations
 
-from pathlib import Path
+import unicodedata
 from typing import Any
 
-from openpyxl import load_workbook
+from openpyxl import Workbook
+
+from app.services.decision_model import MODEL_CRITERIA
+
+
+def map_criterion_name(name: str) -> str | None:
+    normalized = unicodedata.normalize("NFKD", str(name).strip().lower())
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    normalized = normalized.replace("₂", "2")
+    if any(token in normalized for token in ("co2", "gwp", "emision")):
+        return "co2"
+    if "energ" in normalized:
+        return "energy"
+    if any(token in normalized for token in ("tecnic", "desempen", "performance")):
+        return "technical_performance"
+    if any(token in normalized for token in ("costo", "cost", "lcc")):
+        return "lcc_cost"
+    if any(token in normalized for token in ("salud", "ecosist", "health")):
+        return "health_ecosystems"
+    if any(token in normalized for token in ("mencion", "cantidad")):
+        return "cantidad_menciones"
+    return None
+
+
+def _find_matrix_sheet(workbook: Workbook) -> Any:
+    for sheet in workbook.worksheets:
+        title = sheet.title.lower()
+        if "matriz" in title and "datos" in title:
+            return sheet
+    raise ValueError("No se encontró la hoja de matriz de datos de entrada.")
+
+
+def read_material_matrix(workbook: Workbook) -> tuple[list[str], dict[str, list[float]]]:
+    sheet = _find_matrix_sheet(workbook)
+    header_row = None
+    header: tuple[Any, ...] | None = None
+    for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+        if any(isinstance(value, str) and value.strip().lower() in {"material", "materiales"} for value in row):
+            header_row, header = index, row
+            break
+    if header_row is None or header is None:
+        raise ValueError("No se encontró la cabecera Material en la matriz.")
+
+    try:
+        material_column = next(
+            index
+            for index, value in enumerate(header)
+            if isinstance(value, str) and value.strip().lower() in {"material", "materiales"}
+        )
+    except StopIteration as exc:
+        raise ValueError("No se encontró la columna Material.") from exc
+
+    material_names: list[str] = []
+    rows: list[tuple[Any, ...]] = []
+    for row in sheet.iter_rows(min_row=header_row + 1, values_only=True):
+        value = row[material_column] if material_column < len(row) else None
+        if value is None or not str(value).strip():
+            if material_names:
+                break
+            continue
+        name = str(value).strip()
+        if name.lower() in {"material", "materiales", "total", "#", "datos"}:
+            continue
+        material_names.append(name)
+        rows.append(row)
+
+    if not material_names:
+        raise ValueError("No se encontraron materiales en la matriz.")
+
+    matrix: dict[str, list[float]] = {}
+    for column, heading in enumerate(header):
+        criterion = map_criterion_name(heading) if heading is not None else None
+        if criterion not in MODEL_CRITERIA:
+            continue
+        values: list[float] = []
+        for row in rows:
+            value = row[column] if column < len(row) else None
+            try:
+                values.append(float(value))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"El criterio '{heading}' contiene un valor no numérico.") from exc
+        if criterion not in matrix:
+            matrix[criterion] = values
+    return material_names, matrix
+
+
+def read_criteria_weights(workbook: Workbook) -> dict[str, float] | None:
+    for sheet in workbook.worksheets:
+        title = sheet.title.lower()
+        if "peso" not in title or "final" not in title:
+            continue
+        weights: dict[str, float] = {}
+        for row in sheet.iter_rows(values_only=True):
+            if not row or not isinstance(row[0], str):
+                continue
+            criterion = map_criterion_name(row[0])
+            if criterion not in MODEL_CRITERIA:
+                continue
+            candidates: list[float] = []
+            for value in row[1:]:
+                try:
+                    number = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if 0 < number < 1:
+                    candidates.append(number)
+            if candidates:
+                weights[criterion] = candidates[-1]
+        if set(weights) == set(MODEL_CRITERIA):
+            return weights
+    return None
 
 
 class ExcelWorkbookLoader:
-    """Carga y valida la matriz de criterios desde un archivo Excel."""
+    """Carga hojas Excel para compatibilidad con consumidores existentes."""
 
-    def __init__(self, file_path: str | Path | None = None):
-        self.file_path = Path(file_path) if file_path is not None else None
+    def load(self, file_path: str) -> dict[str, Any]:
+        from openpyxl import load_workbook
 
-    def load(self, file_path: str | Path) -> dict[str, Any]:
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"No se encontró el archivo Excel: {path}")
-
-        workbook = load_workbook(path, data_only=True)
-        if not workbook.sheetnames:
-            raise ValueError("El archivo Excel no contiene hojas.")
+        workbook = load_workbook(file_path, data_only=True)
         return {sheet.title: sheet for sheet in workbook.worksheets}
 
-    def extract_materials_and_criteria(self, workbook_data: dict[str, Any]) -> tuple[list[str], list[str], dict[str, list[float]]]:
-        if not workbook_data:
-            raise ValueError("No hay información en el archivo Excel.")
+    def extract_materials_and_criteria(
+        self, workbook_data: dict[str, Any]
+    ) -> tuple[list[str], list[str], dict[str, list[float]]]:
+        class WorkbookView:
+            worksheets = list(workbook_data.values())
 
-        material_sheet = self._find_sheet(workbook_data, ["Materiales", "materials", "MATERIALES"])
-        criteria_sheet = self._find_sheet(workbook_data, ["Criterios", "criteria", "CRITERIOS"])
-
-        materials = self._read_named_list(material_sheet, 1)
-        criteria = self._read_named_list(criteria_sheet, 0)
-
-        matrix: dict[str, list[float]] = {}
-        for column_index, criterion in enumerate(criteria):
-            values = []
-            for row_index in range(1, material_sheet.max_row + 1):
-                value = material_sheet.cell(row=row_index, column=column_index + 2).value
-                if value is None:
-                    continue
-                values.append(float(value))
-            matrix[criterion] = values
-
-        return materials, criteria, matrix
-
-    def _find_sheet(self, workbook_data: dict[str, Any], aliases: list[str]):
-        for alias in aliases:
-            for sheet_name, sheet in workbook_data.items():
-                if sheet_name.strip().lower() == alias.lower():
-                    return sheet
-        for sheet_name, sheet in workbook_data.items():
-            lower = sheet_name.lower()
-            if "material" in lower or "criterio" in lower:
-                return sheet
-        raise ValueError(f"No se encontró ninguna hoja con nombre esperado: {aliases}")
-
-    def _read_named_list(self, sheet: Any, column_index: int) -> list[str]:
-        names: list[str] = []
-        for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, values_only=True):
-            value = row[column_index] if column_index < len(row) else None
-            if value is None:
-                continue
-            text = str(value).strip()
-            if not text or text.lower() in {"material", "criterio", "total", "#", "datos"}:
-                continue
-            names.append(text)
-        return names
+        materials, matrix = read_material_matrix(WorkbookView())
+        return materials, list(matrix), matrix

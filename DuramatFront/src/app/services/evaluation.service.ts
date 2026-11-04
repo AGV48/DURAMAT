@@ -12,6 +12,8 @@ export interface MaterialEvaluationItem {
   rank: number;
   material: string;
   score: number;
+  topsis_ci: number;
+  wlc_score: number;
   life_years: number;
   annualized_co2: number;
   annualized_energy: number;
@@ -38,6 +40,8 @@ export interface EvaluationResponse {
   score_gap_percent: number | null;
   decision_tree_text: string | null;
   decision_nodes: DecisionNodeEvaluation[];
+  aggregation: string;
+  weights: Record<string, number>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -47,12 +51,13 @@ export class EvaluationService {
 
   constructor(private readonly http: HttpClient) {}
 
-  evaluate(file: File, climate: ClimatePayload): Observable<EvaluationResponse> {
+  evaluate(file: File, climate: ClimatePayload, aggregation = 'topsis'): Observable<EvaluationResponse> {
     const formData = new FormData();
     formData.append('file', file, file.name);
     formData.append('temperature_c', String(climate.temperature_c));
     formData.append('relative_humidity', String(climate.relative_humidity));
     formData.append('co2_ppm', String(climate.co2_ppm));
+    formData.append('aggregation', aggregation);
 
     // Allow runtime configuration of API base URL via global `API_BASE_URL`.
     // If unset, use relative path so the app can be proxied or served from the same origin.

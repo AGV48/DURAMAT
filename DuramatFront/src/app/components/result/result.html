@@ -44,6 +44,7 @@
       </div>
       <div class="summary-metrics">
         <span>Brecha: {{ scoreGap() | number: '1.2-2' }}%</span>
+        <span>Método: {{ result.aggregation | uppercase }}</span>
         <span>Temp: {{ climate()?.temperature_c ?? 0 }}°C</span>
         <span>HR: {{ climate()?.relative_humidity ?? 0 }}%</span>
       </div>
@@ -80,6 +81,13 @@
       </div>
     </section>
 
+    <div class="weights-panel">
+      <strong>Pesos usados:</strong>
+      <span *ngFor="let weight of result.weights | keyvalue">
+        {{ weight.key }}: {{ weight.value * 100 | number: '1.1-2' }}%
+      </span>
+    </div>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -87,6 +95,8 @@
             <th>Rank</th>
             <th>Material</th>
             <th>Score</th>
+            <th>Cᵢ TOPSIS</th>
+            <th>WLC</th>
             <th>Vida útil</th>
             <th>CO₂/año</th>
             <th>Energía/año</th>
@@ -97,6 +107,8 @@
             <td>#{{ item.rank }}</td>
             <td>{{ item.material }}</td>
             <td>{{ item.score | number: '1.4-4' }}</td>
+            <td>{{ item.topsis_ci | number: '1.4-4' }}</td>
+            <td>{{ item.wlc_score | number: '1.4-4' }}</td>
             <td>{{ item.life_years | number: '1.2-2' }} años</td>
             <td>{{ item.annualized_co2 | number: '1.2-2' }}</td>
             <td>{{ item.annualized_energy | number: '1.2-2' }}</td>
